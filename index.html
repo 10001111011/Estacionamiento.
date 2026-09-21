@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Estacionamiento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --asphalt:#232629; --card:#2c2f33; --card-line:#3a3e43;
+  --white:#eef1f2; --sub:#9aa1a8;
+  --yellow:#f2c14e; --yellow-dim:#7a6226;
+  --owner:#5b8dee; --resident:#3fb68c; --guest:#e8914a;
+  --danger:#e5555a; --paid:#3fb68c;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root[data-theme="light"]{
+  --asphalt:#eceef0; --card:#ffffff; --card-line:#dfe2e6;
+  --white:#1c1e21; --sub:#5c6570;
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{
+  margin:0; background:var(--asphalt); color:var(--white);
+  font-family:'Inter',-apple-system,sans-serif;
+  padding:16px 16px 84px; max-width:520px; margin:0 auto;
+  min-height:100%;
+}
+h1,h2,h3,.num{font-family:'Oswald',sans-serif;}
+.topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+.topbar h1{font-size:1.15rem; font-weight:600; letter-spacing:0.02em; margin:0;}
+.theme-btn{background:none; border:1px solid var(--card-line); border-radius:8px; padding:6px 10px; color:var(--sub); font-size:0.85rem;}
+
+/* hero: LED-style availability sign */
+.led{
+  background:#141516; border:1px solid var(--card-line); border-radius:12px;
+  padding:18px 16px; margin-bottom:16px; position:relative; overflow:hidden;
+}
+.led::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:4px;
+  background:repeating-linear-gradient(90deg, var(--yellow) 0 14px, transparent 14px 24px);
+  opacity:0.7;
+}
+.led-label{color:var(--sub); font-size:0.72rem; letter-spacing:0.08em; margin-bottom:2px;}
+.led-num{font-size:3rem; font-weight:700; color:var(--yellow); line-height:1; font-variant-numeric:tabular-nums;}
+.led-sub{color:var(--white); font-size:0.9rem; margin-top:2px;}
+.led-bars{display:flex; gap:4px; margin-top:12px;}
+.led-bar{flex:1; height:6px; border-radius:3px; background:var(--card-line);}
+.led-bar.on.owner{background:var(--owner);}
+.led-bar.on.resident{background:var(--resident);}
+.led-bar.on.guest{background:var(--guest);}
+
+.stats-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
+.stat{background:var(--card); border:1px solid var(--card-line); border-radius:12px; padding:12px;}
+.stat .num{font-size:1.5rem; font-weight:600;}
+.stat .lbl{color:var(--sub); font-size:0.74rem; margin-top:2px;}
+.stat.danger .num{color:var(--danger);}
+.stat.paid .num{color:var(--paid);}
+
+h2.section{font-size:0.78rem; letter-spacing:0.06em; color:var(--sub); font-weight:500; margin:20px 0 8px; text-transform:uppercase;}
+.card{background:var(--card); border:1px solid var(--card-line); border-radius:12px; padding:14px; margin-bottom:12px;}
+.row{display:flex; gap:8px; flex-wrap:wrap;}
+label{font-size:0.76rem; color:var(--sub); display:block; margin-bottom:4px;}
+select, input{
+  width:100%; padding:10px; border-radius:8px; border:1px solid var(--card-line);
+  background:var(--asphalt); color:var(--white); font-size:0.92rem; font-family:'Inter',sans-serif;
+}
+input::placeholder{color:var(--sub);}
+button{
+  border:none; border-radius:8px; padding:11px 14px; font-size:0.88rem;
+  font-weight:600; cursor:pointer; background:var(--yellow); color:#1c1a10;
+  font-family:'Inter',sans-serif;
+}
+button.ghost{background:transparent; border:1px solid var(--card-line); color:var(--white); font-weight:500;}
+button.block{width:100%; margin-top:10px;}
+.lent-row{display:flex; align-items:center; gap:8px; margin-top:10px; font-size:0.82rem; color:var(--sub);}
+.lent-row input{width:auto;}
+
+/* dashed lane divider */
+.lane{
+  height:1px; margin:16px 0;
+  background:repeating-linear-gradient(90deg, var(--card-line) 0 10px, transparent 10px 18px);
+}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:8px;}
+.stall{
+  border-radius:8px; padding:10px 6px; text-align:center; font-size:0.76rem;
+  border:1px solid var(--card-line); border-top:3px solid var(--card-line); background:var(--card);
+}
+.stall.owner{border-top-color:var(--owner);}
+.stall.resident{border-top-color:var(--resident);}
+.stall.guest{border-top-color:var(--guest);}
+.stall.free{opacity:0.55;}
+.stall .plate{display:block; font-weight:700; margin-top:2px; font-size:0.8rem;}
+.stall .who{display:block; font-size:0.66rem; color:var(--sub); margin-top:1px;}
+.stall-actions{display:flex; justify-content:center; gap:4px; margin-top:5px;}
+.mini{font-size:0.64rem; padding:3px 6px; border-radius:6px; background:transparent; border:1px solid var(--card-line); color:var(--sub); font-weight:500;}
+
+.badge{display:inline-block; font-size:0.66rem; padding:2px 7px; border-radius:999px; color:#fff; margin-left:6px;}
+.badge.owner{background:var(--owner);} .badge.resident{background:var(--resident);} .badge.guest{background:var(--guest);}
+
+.hist-item{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--card-line); font-size:0.85rem;}
+.hist-item:last-child{border-bottom:none;}
+.hist-right{display:flex; flex-direction:column; align-items:flex-end; gap:5px;}
+.fee{color:var(--danger); font-weight:700; font-family:'Oswald',sans-serif;}
+.fee.paid{color:var(--paid); text-decoration:line-through; opacity:0.8;}
+.pay-btn{font-size:0.66rem; padding:4px 9px; border-radius:999px; font-weight:600; background:var(--danger); color:#fff;}
+.pay-btn.paid{background:var(--paid);}
+.empty{color:var(--sub); font-size:0.85rem; text-align:center; padding:16px 0;}
+
+/* bottom tabs */
+.tabbar{
+  position:fixed; bottom:0; left:0; right:0; display:flex;
+  background:var(--card); border-top:1px solid var(--card-line);
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));
+  max-width:520px; margin:0 auto;
+}
+.tab{flex:1; text-align:center; background:none; border:none; color:var(--sub); font-size:0.7rem; padding:6px 0; font-family:'Inter',sans-serif; font-weight:500;}
+.tab .ic{display:block; font-size:1.05rem; margin-bottom:2px;}
+.tab.active{color:var(--yellow);}
+.view{display:none;}
+.view.active{display:block;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🅿️ Estacionamiento</h1>
+  <button class="theme-btn" onclick="toggleTheme()">◐</button>
+</div>
+
+<!-- PANEL -->
+<div class="view active" id="view-panel">
+  <div class="led">
+    <div class="led-label">ESPACIOS LIBRES</div>
+    <div class="led-num" id="ledFree">0 / 0</div>
+    <div class="led-sub" id="ledSub">Ocupación 0%</div>
+    <div class="led-bars" id="ledBars"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat danger"><div class="num" id="statPending">$0</div><div class="lbl">Multas pendientes</div></div>
+    <div class="stat paid"><div class="num" id="statPaid">$0</div><div class="lbl">Cobrado</div></div>
+  </div>
+
+  <h2 class="section">Últimos 7 días</h2>
+  <div class="card"><div id="sparkline"></div></div>
+
+  <h2 class="section">Tarifa</h2>
+  <div class="card">
+    <label>Tarifa por invasión de espacio de dueño (MXN)</label>
+    <input id="feeInput" type="number" value="500" onchange="save()">
+  </div>
+
+  <h2 class="section">Datos</h2>
+  <div class="card row">
+    <button class="ghost" style="flex:1;" onclick="exportData()">Exportar CSV</button>
+    <button class="ghost" style="flex:1;" onclick="resetAll()">Reiniciar todo</button>
+  </div>
+</div>
+
+<!-- ESPACIOS -->
+<div class="view" id="view-spots">
+  <h2 class="section">Nuevo espacio</h2>
+  <div class="card">
+    <div class="row">
+      <div style="flex:1;"><label>Número</label><input id="newSpotNum" placeholder="Ej. 12"></div>
+      <div style="flex:1;">
+        <label>Tipo</label>
+        <select id="newSpotType">
+          <option value="owner">Dueño</option>
+          <option value="resident">Residente</option>
+          <option value="guest">Invitado</option>
+        </select>
+      </div>
+    </div>
+    <button class="block" onclick="addSpot()">+ Agregar espacio</button>
+  </div>
+
+  <h2 class="section">Registrar entrada</h2>
+  <div class="card">
+    <label>Placa</label>
+    <input id="plateInput" placeholder="ABC-123">
+    <div style="height:8px;"></div>
+    <label>Tipo de conductor</label>
+    <select id="driverType">
+      <option value="owner">Dueño</option>
+      <option value="resident">Residente</option>
+      <option value="guest">Invitado</option>
+    </select>
+    <div style="height:8px;"></div>
+    <label>Espacio</label>
+    <select id="spotSelect"></select>
+    <div class="lent-row">
+      <input type="checkbox" id="lentCheck">
+      <label for="lentCheck" style="margin:0;">El dueño prestó su lugar (sin multa)</label>
+    </div>
+    <button class="block" onclick="occupySpot()">Estacionar</button>
+  </div>
+
+  <h2 class="section">Todos los espacios</h2>
+  <div class="grid" id="spotsGrid"></div>
+</div>
+
+<!-- ACTIVIDAD -->
+<div class="view" id="view-activity">
+  <h2 class="section">Buscar</h2>
+  <div class="card">
+    <input id="searchInput" placeholder="Buscar por placa o espacio..." oninput="render()">
+  </div>
+  <h2 class="section">Historial de multas</h2>
+  <div class="card"><div id="history"></div></div>
+</div>
+
+<div class="tabbar">
+  <button class="tab active" data-tab="panel" onclick="switchTab('panel')"><span class="ic">📊</span>Panel</button>
+  <button class="tab" data-tab="spots" onclick="switchTab('spots')"><span class="ic">🚗</span>Espacios</button>
+  <button class="tab" data-tab="activity" onclick="switchTab('activity')"><span class="ic">🧾</span>Actividad</button>
+</div>
+
+<script>
+const TYPE_LABEL = {owner:"Dueño", resident:"Residente", guest:"Invitado"};
+let state = { spots: [], history: [], fee:500, theme:'dark' };
+
+function load(){
+  try{
+    const raw = localStorage.getItem('parking_state_v2');
+    if(raw) state = JSON.parse(raw);
+  }catch(e){ console.error('No se pudo cargar', e); }
+  if(!state.spots || state.spots.length===0){
+    state.spots = [
+      {id:1, num:"D1", type:"owner", ownerName:"", occupied:false, plate:null, driverType:null},
+      {id:2, num:"D2", type:"owner", ownerName:"", occupied:false, plate:null, driverType:null},
+      {id:3, num:"R1", type:"resident", ownerName:"", occupied:false, plate:null, driverType:null},
+      {id:4, num:"R2", type:"resident", ownerName:"", occupied:false, plate:null, driverType:null},
+      {id:5, num:"I1", type:"guest", ownerName:"", occupied:false, plate:null, driverType:null},
+    ];
+  }
+  state.history = state.history || [];
+  state.fee = state.fee || 500;
+  state.theme = state.theme || 'dark';
+  document.documentElement.setAttribute('data-theme', state.theme);
+  document.getElementById('feeInput').value = state.fee;
+}
+function save(){
+  state.fee = Number(document.getElementById('feeInput').value) || 500;
+  try{ localStorage.setItem('parking_state_v2', JSON.stringify(state)); }
+  catch(e){ console.error('No se pudo guardar', e); }
+}
+
+function toggleTheme(){
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', state.theme);
+  save();
+}
+
+function switchTab(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+}
+
+function addSpot(){
+  const num = document.getElementById('newSpotNum').value.trim();
+  const type = document.getElementById('newSpotType').value;
+  if(!num){ alert('Escribe un número de espacio'); return; }
+  state.spots.push({id:Date.now(), num, type, ownerName:"", occupied:false, plate:null, driverType:null});
+  document.getElementById('newSpotNum').value='';
+  save(); render();
+}
+
+function occupySpot(){
+  const plate = document.getElementById('plateInput').value.trim().toUpperCase();
+  const driverType = document.getElementById('driverType').value;
+  const spotId = Number(document.getElementById('spotSelect').value);
+  const lent = document.getElementById('lentCheck').checked;
+  if(!plate){ alert('Escribe la placa'); return; }
+  const spot = state.spots.find(s=>s.id===spotId);
+  if(!spot){ alert('Elige un espacio libre'); return; }
+
+  spot.occupied = true; spot.plate = plate; spot.driverType = driverType;
+
+  if(spot.type === 'owner' && driverType !== 'owner' && !lent){
+    const fee = Number(document.getElementById('feeInput').value) || 0;
+    state.history.unshift({
+      id: Date.now()+Math.random(),
+      plate, driverType, spotNum: spot.num, fee, paid:false,
+      ts: Date.now(),
+      date: new Date().toLocaleString('es-MX')
+    });
+  }
+  document.getElementById('plateInput').value='';
+  document.getElementById('lentCheck').checked = false;
+  save(); render();
+}
+
+function freeSpot(id){
+  const spot = state.spots.find(s=>s.id===id);
+  if(!spot) return;
+  spot.occupied = false; spot.plate = null; spot.driverType = null;
+  save(); render();
+}
+
+function togglePaid(id){
+  const h = state.history.find(x=>x.id===id);
+  if(!h) return;
+  h.paid = !h.paid;
+  save(); render();
+}
+
+function editSpot(id, ev){
+  ev.stopPropagation();
+  const spot = state.spots.find(s=>s.id===id);
+  if(!spot) return;
+  const newNum = prompt('Número de espacio:', spot.num);
+  if(newNum === null) return;
+  const newType = prompt('Tipo (owner / resident / guest):', spot.type);
+  if(newType === null) return;
+  if(!['owner','resident','guest'].includes(newType)){ alert('Tipo inválido. Usa: owner, resident o guest'); return; }
+  let ownerName = spot.ownerName || "";
+  if(newType==='owner'){
+    const n = prompt('Nombre del dueño (opcional):', ownerName);
+    if(n !== null) ownerName = n;
+  }
+  spot.num = newNum.trim() || spot.num; spot.type = newType; spot.ownerName = ownerName;
+  save(); render();
+}
+
+function deleteSpot(id, ev){
+  ev.stopPropagation();
+  if(!confirm('¿Eliminar este espacio?')) return;
+  state.spots = state.spots.filter(s=>s.id!==id);
+  save(); render();
+}
+
+async function exportData(){
+  let csv = 'Placa,Tipo Conductor,Espacio,Multa,Pagada,Fecha\n';
+  state.history.forEach(h=>{
+    csv += `${h.plate},${TYPE_LABEL[h.driverType]},${h.spotNum},${h.fee},${h.paid?'Si':'No'},${h.date}\n`;
+  });
+  try{
+    const downloads = await claude.use('downloads');
+    if(downloads){
+      await downloads.save({filename:'estacionamiento_multas.csv', data:csv});
+      return;
+    }
+  }catch(e){ console.error(e); }
+  alert('La descarga no está disponible en esta vista.');
+}
+
+function resetAll(){
+  if(!confirm('Esto borra todos los espacios e historial. ¿Continuar?')) return;
+  localStorage.removeItem('parking_state_v2');
+  state = { spots: [], history: [], fee:500, theme:state.theme };
+  load(); save(); render();
+}
+
+function render(){
+  // selector de espacios libres
+  const sel = document.getElementById('spotSelect');
+  sel.innerHTML = '';
+  const free = state.spots.filter(s=>!s.occupied);
+  free.forEach(s=>{
+    const opt = document.createElement('option');
+    opt.value = s.id; opt.textContent = `${s.num} (${TYPE_LABEL[s.type]})`;
+    sel.appendChild(opt);
+  });
+  if(free.length===0){
+    const opt = document.createElement('option'); opt.textContent = 'No hay espacios libres';
+    sel.appendChild(opt);
+  }
+
+  // LED hero
+  const total = state.spots.length;
+  const occ = state.spots.filter(s=>s.occupied).length;
+  document.getElementById('ledFree').textContent = `${total-occ} / ${total}`;
+  document.getElementById('ledSub').textContent = total ? `Ocupación ${Math.round(occ/total*100)}%` : 'Sin espacios registrados';
+  const bars = document.getElementById('ledBars');
+  bars.innerHTML = '';
+  state.spots.forEach(s=>{
+    const b = document.createElement('div');
+    b.className = `led-bar ${s.occupied?'on':''} ${s.type}`;
+    bars.appendChild(b);
+  });
+
+  // stats
+  const pending = state.history.filter(h=>!h.paid).reduce((a,h)=>a+h.fee,0);
+  const paidTotal = state.history.filter(h=>h.paid).reduce((a,h)=>a+h.fee,0);
+  document.getElementById('statPending').textContent = `$${pending}`;
+  document.getElementById('statPaid').textContent = `$${paidTotal}`;
+
+  // sparkline: multas por día, últimos 7 días
+  const days = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+    days.push(d);
+  }
+  const totalsByDay = days.map(d=>{
+    const next = new Date(d); next.setDate(next.getDate()+1);
+    return state.history.filter(h=>h.ts>=d.getTime() && h.ts<next.getTime()).reduce((a,h)=>a+h.fee,0);
+  });
+  const max = Math.max(1, ...totalsByDay);
+  const spark = document.getElementById('sparkline');
+  spark.innerHTML = `<div style="display:flex; align-items:flex-end; gap:6px; height:70px;">${
+    totalsByDay.map((v,i)=>`<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+      <div style="width:100%; border-radius:3px; background:var(--yellow); height:${Math.max(3,(v/max)*54)}px;"></div>
+      <span style="font-size:0.6rem; color:var(--sub);">${days[i].toLocaleDateString('es-MX',{weekday:'short'})}</span>
+    </div>`).join('')
+  }</div>`;
+
+  // grid de espacios
+  const grid = document.getElementById('spotsGrid');
+  grid.innerHTML = '';
+  state.spots.forEach(s=>{
+    const wrap = document.createElement('div');
+    const div = document.createElement('div');
+    div.className = `stall ${s.type} ${s.occupied?'':'free'}`;
+    div.onclick = ()=> s.occupied ? freeSpot(s.id) : null;
+    const who = s.occupied ? '' : (s.type==='owner' && s.ownerName ? s.ownerName : TYPE_LABEL[s.type]);
+    div.innerHTML = `${s.num}<span class="plate">${s.occupied? s.plate : 'Libre'}</span><span class="who">${who}</span>`;
+    div.title = s.occupied ? 'Toca para liberar' : '';
+    wrap.appendChild(div);
+    const actions = document.createElement('div');
+    actions.className = 'stall-actions';
+    actions.innerHTML = `<button class="mini" onclick="editSpot(${s.id}, event)">✎</button><button class="mini" onclick="deleteSpot(${s.id}, event)">🗑</button>`;
+    wrap.appendChild(actions);
+    grid.appendChild(wrap);
+  });
+
+  // historial con búsqueda
+  const q = (document.getElementById('searchInput').value || '').trim().toUpperCase();
+  const hist = document.getElementById('history');
+  const filtered = state.history.filter(h => !q || h.plate.includes(q) || h.spotNum.toUpperCase().includes(q));
+  hist.innerHTML = '';
+  if(filtered.length===0){
+    hist.innerHTML = `<div class="empty">${state.history.length===0 ? 'Sin cobros registrados' : 'Sin resultados para esa búsqueda'}</div>`;
+  } else {
+    filtered.forEach(h=>{
+      const div = document.createElement('div');
+      div.className = 'hist-item';
+      div.innerHTML = `<span>${h.plate} <span class="badge ${h.driverType}">${TYPE_LABEL[h.driverType]}</span> → espacio ${h.spotNum}<br><small style="color:var(--sub);">${h.date}</small></span>
+      <span class="hist-right">
+        <span class="fee ${h.paid?'paid':''}">$${h.fee}</span>
+        <button class="pay-btn ${h.paid?'paid':''}" onclick="togglePaid(${JSON.stringify(h.id)})">${h.paid?'Pagada ✓':'Marcar pagada'}</button>
+      </span>`;
+      hist.appendChild(div);
+    });
+  }
+}
+
+load();
+render();
+</script>
+</body>
+</html>
